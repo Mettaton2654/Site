@@ -77,6 +77,7 @@
     <div class="chat-main">
         {% if active_chat %}
             {% set other_user = active_chat.participants.filter(User.id != current_user.id).first() %}
+            <input type="hidden" id="lastMessageId" value="{{ messages[-1].id if messages else 0 }}">
             <div class="chat-header">
                 <div class="chat-header-info">
                     <img src="{{ avatar_url(other_user) }}" alt="avatar" class="header-avatar">
@@ -128,5 +129,8 @@
 
 {% block scripts %}
 {{ super() }}
+<script>
+    const currentUserId = {{ current_user.id }};
+</script>
 <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 {% endblock %}

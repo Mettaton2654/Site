@@ -934,6 +934,29 @@ def search():
     else:
         posts = []
     return render_template('search_results.html', posts=posts, query=query)
+@app.route('/api/chat/<int:chat_id>/messages/new')
+@login_required
+def get_new_messages(chat_id):
+    last_id = request.args.get('last_id', 0, type=int)
+    chat = Chat.query.get_or_404(chat_id)
+    if current_user not in chat.participants:
+        abort(403)
+    
+    new_messages = Message.query.filter(
+        Message.chat_id == chat_id,
+        Message.id > last_id
+    ).order_by(Message.id.asc()).all()
+    messages_data = []
+    for msg in new_messages:
+        messages_data.append({
+            'id': msg.id,
+            'content': msg.content,
+            'sender_id': msg.sender_id,
+            'sender_username': msg.sender.username,
+            'timestamp': msg.timestamp.isoformat(),
+        })
+    
+    return jsonify({'messages': messages_data})
 @app.route('/test-ai-post')
 @login_required
 def test_ai_post():
