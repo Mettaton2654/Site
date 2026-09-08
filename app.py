@@ -1020,30 +1020,5 @@ def utility_processor():
         return 'https://res.cloudinary.com/dssim246k/image/upload/v1775454177/default_ehpw4u.jpg'
 
     return dict(avatar_url=avatar_url, current_year=datetime.utcnow().year)
-@app.route('/encrypt-old-messages')
-@login_required
-def encrypt_old_messages():
-    if not current_user.is_admin:
-        return "Доступ только админу", 403
-
-    from sqlalchemy import text
-    fernet = Fernet(app.config['FERNET_KEY'].encode())
-    
-    rows = db.session.execute(
-        text("SELECT id, content FROM messages WHERE encrypted_content IS NULL")
-    ).fetchall()
-    
-    count = 0
-    for row in rows:
-        msg_id, plain_text = row
-        if plain_text:
-            encrypted = fernet.encrypt(plain_text.encode()).decode()
-            db.session.execute(
-                text("UPDATE messages SET encrypted_content = :enc WHERE id = :id"),
-                {"enc": encrypted, "id": msg_id}
-            )
-            count += 1
-    db.session.commit()
-    return f"Зашифровано {count} сообщений"
 if __name__ == '__main__':
     app.run(debug=True)
