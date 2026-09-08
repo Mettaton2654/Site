@@ -27,8 +27,6 @@ import resend
 from cryptography.fernet import Fernet
 
 
-if not app.config['FERNET_KEY']:
-    raise ValueError("FERNET_KEY не задан! Добавьте его в Environment Variables на Render.")
 try:
     import cloudinary
     import cloudinary.uploader
@@ -62,7 +60,6 @@ if database_url.startswith('postgresql'):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['FERNET_KEY'] = os.environ.get('FERNET_KEY')
-
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
