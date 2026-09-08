@@ -242,6 +242,8 @@ class Message(db.Model):
 
     @property
     def content(self):
+        if self.encrypted_content is None:
+            return "" 
         fernet = Fernet(app.config['FERNET_KEY'].encode())
         return fernet.decrypt(self.encrypted_content.encode()).decode()
 
@@ -263,14 +265,6 @@ class Sticker(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 with app.app_context():
-    fernet = Fernet(app.config['FERNET_KEY'].encode())
-    messages = Message.query.all()
-    for msg in messages:
-        if msg.content:
-            encrypted = fernet.encrypt(msg.content.encode()).decode()
-            msg.encrypted_content = encrypted
-            db.session.add(msg)
-    db.session.commit()
     db.create_all()
     print("✅ Таблицы созданы или уже существуют в Supabase.")
     bot_username = "AI_Bot"
@@ -1016,6 +1010,21 @@ def utility_processor():
         return 'https://res.cloudinary.com/dssim246k/image/upload/v1775454177/default_ehpw4u.jpg'
 
     return dict(avatar_url=avatar_url, current_year=datetime.utcnow().year)
+@app.route('/encrypt-old-messages')
+@login_required
+def encrypt_old_messages():
+    if not current_user.is_admin:
+        return "Доступ только админу", 403
 
+    fernet = Fernet(app.config['FERNET_KEY'].encode())
+    messages = Message.query.filter(Message.encrypted_content.is_(None)).all()
+    count = 0
+    for msg in messages:
+        if hasattr(msg, 'content') and msg.content:
+            encrypted = fernet.encrypt(msg.content.encode()).decode()
+            msg.encrypted_content = encrypted
+            count += 1
+    db.session.commit()
+    return f"Зашифровано {count} сообщений"
 if __name__ == '__main__':
     app.run(debug=True)
