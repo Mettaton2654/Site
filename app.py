@@ -24,6 +24,12 @@ import io
 from PIL import Image
 import base64
 import resend
+from cryptography.fernet import Fernet
+
+app.config['FERNET_KEY'] = os.environ.get('FERNET_KEY')
+
+if not app.config['FERNET_KEY']:
+    raise ValueError("FERNET_KEY не задан! Добавьте его в Environment Variables на Render.")
 try:
     import cloudinary
     import cloudinary.uploader
@@ -232,11 +238,20 @@ class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     chat_id = db.Column(db.Integer, db.ForeignKey('chats.id'), nullable=False)
     sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    content = db.Column(db.Text, nullable=False)
+    encrypted_content = db.Column(db.Text, nullable=False)  # новое поле
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    is_read = db.Column(db.Boolean, default=False)  # можно заменить на связь many-to-many, но оставим для простоты
-
+    is_read = db.Column(db.Boolean, default=False)
     sender = db.relationship('User', backref='messages_sent_new')
+
+    @property
+    def content(self):
+        fernet = Fernet(app.config['FERNET_KEY'].encode())
+        return fernet.decrypt(self.encrypted_content.encode()).decode()
+
+    @content.setter
+    def content(self, plain_text):
+        fernet = Fernet(app.config['FERNET_KEY'].encode())
+        self.encrypted_content = fernet.encrypt(plain_text.encode()).decode()
 
 class Sticker(db.Model):
     __tablename__ = 'stickers'
@@ -251,6 +266,14 @@ class Sticker(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 with app.app_context():
+    fernet = Fernet(app.config['FERNET_KEY'].encode())
+    messages = Message.query.all()
+    for msg in messages:
+        if msg.content:
+            encrypted = fernet.encrypt(msg.content.encode()).decode()
+            msg.encrypted_content = encrypted
+            db.session.add(msg)
+    db.session.commit()
     db.create_all()
     print("✅ Таблицы созданы или уже существуют в Supabase.")
     bot_username = "AI_Bot"

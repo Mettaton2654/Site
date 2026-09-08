@@ -12,3 +12,4 @@ flask-mail
 resend
 apscheduler
 openai
+cryptography
