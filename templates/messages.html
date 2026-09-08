@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
+<input type="hidden" id="currentUserId" value="{{ current_user.id }}">
+<input type="hidden" id="chatId" value="{{ active_chat.id if active_chat else '' }}">
 <div class="chat-app-container">
     <div class="chat-sidebar">
         <div class="sidebar-header">
@@ -129,8 +131,5 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
-    const currentUserId = {{ current_user.id }};
-</script>
 <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 {% endblock %}
