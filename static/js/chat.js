@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', function() {
         return el ? parseInt(el.value, 10) : null;
     }
 
+    function formatTime(isoString) {
+        const date = new Date(isoString);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
     const tabButtons = document.querySelectorAll('.tab-btn');
     const panes = document.querySelectorAll('.tab-pane');
     
@@ -50,9 +55,10 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(r => r.json())
             .then(data => {
+                const timeStr = formatTime(data.timestamp);
                 const html = `<div class="message message-out">
                     <div class="message-content">${data.content}</div>
-                    <div class="message-meta"><span class="message-time">${data.timestamp.slice(-5)}</span></div>
+                    <div class="message-meta"><span class="message-time">${timeStr}</span></div>
                 </div>`;
                 msgContainer.insertAdjacentHTML('beforeend', html);
                 document.getElementById('messageInput').value = '';
@@ -90,11 +96,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 data.messages.forEach(msg => {
                     const isOut = (msg.sender_id == currentUserId);
                     const msgClass = isOut ? 'message-out' : 'message-in';
+                    const timeStr = formatTime(msg.timestamp);
                     const html = `
                         <div class="message ${msgClass}">
                             <div class="message-content">${msg.content}</div>
                             <div class="message-meta">
-                                <span class="message-time">${msg.timestamp.slice(-5)}</span>
+                                <span class="message-time">${timeStr}</span>
                             </div>
                         </div>
                     `;
