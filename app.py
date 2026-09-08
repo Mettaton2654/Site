@@ -1026,13 +1026,22 @@ def encrypt_old_messages():
     if not current_user.is_admin:
         return "Доступ только админу", 403
 
+    from sqlalchemy import text
     fernet = Fernet(app.config['FERNET_KEY'].encode())
-    messages = Message.query.filter(Message.encrypted_content.is_(None)).all()
+    
+    rows = db.session.execute(
+        text("SELECT id, content FROM messages WHERE encrypted_content IS NULL")
+    ).fetchall()
+    
     count = 0
-    for msg in messages:
-        if hasattr(msg, 'content') and msg.content:
-            encrypted = fernet.encrypt(msg.content.encode()).decode()
-            msg.encrypted_content = encrypted
+    for row in rows:
+        msg_id, plain_text = row
+        if plain_text:
+            encrypted = fernet.encrypt(plain_text.encode()).decode()
+            db.session.execute(
+                text("UPDATE messages SET encrypted_content = :enc WHERE id = :id"),
+                {"enc": encrypted, "id": msg_id}
+            )
             count += 1
     db.session.commit()
     return f"Зашифровано {count} сообщений"
