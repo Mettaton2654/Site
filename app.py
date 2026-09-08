@@ -265,6 +265,16 @@ class Sticker(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 with app.app_context():
+    fernet = Fernet(app.config['FERNET_KEY'].encode())
+    messages = Message.query.filter(Message.encrypted_content.is_(None)).all()
+    count = 0
+    for msg in messages:
+        if hasattr(msg, 'content') and msg.content:
+            encrypted = fernet.encrypt(msg.content.encode()).decode()
+            msg.encrypted_content = encrypted
+            count += 1
+    db.session.commit()
+    print(f"Зашифровано {count} сообщений")
     db.create_all()
     print("✅ Таблицы созданы или уже существуют в Supabase.")
     bot_username = "AI_Bot"
