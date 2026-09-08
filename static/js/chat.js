@@ -17,34 +17,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabButtons = document.querySelectorAll('.tab-btn');
     const panes = document.querySelectorAll('.tab-pane');
     
-    console.log('Tabs found:', tabButtons.length, 'Panes found:', panes.length);
-    
     tabButtons.forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const tabId = this.dataset.tab;
-            console.log('Switching to', tabId);
-            
             tabButtons.forEach(b => b.classList.remove('active'));
             panes.forEach(p => p.classList.remove('active'));
-            
             this.classList.add('active');
             const targetPane = document.getElementById(tabId);
-            if (targetPane) {
-                targetPane.classList.add('active');
-            } else {
-                console.error('Pane not found:', tabId);
-            }
+            if (targetPane) targetPane.classList.add('active');
         });
     });
 
     const msgContainer = document.getElementById('messageContainer');
     if (msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
     
+    let isSending = false;
+    let lastMessageId = getLastMessageId();
+
     const msgForm = document.getElementById('messageForm');
     if (msgForm) {
         msgForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            if (isSending) return;
+            isSending = true;
+
             const formData = new FormData(this);
             fetch(this.action, {
                 method: 'POST',
@@ -60,24 +57,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 msgContainer.insertAdjacentHTML('beforeend', html);
                 document.getElementById('messageInput').value = '';
                 msgContainer.scrollTop = msgContainer.scrollHeight;
-
+                
                 if (data.id) {
+                    lastMessageId = data.id;
                     const lastIdField = document.getElementById('lastMessageId');
                     if (lastIdField) lastIdField.value = data.id;
                 }
+                isSending = false;
             })
-            .catch(err => console.error('Error sending message:', err));
+            .catch(err => {
+                console.error('Error sending message:', err);
+                isSending = false;
+            });
         });
     }
 
-    let lastMessageId = getLastMessageId();
-
     function fetchNewMessages() {
+        if (isSending) return;
         const chatId = getActiveChatId();
         if (!chatId) return;
         
         const url = `/api/chat/${chatId}/messages/new?last_id=${lastMessageId}`;
-        
         fetch(url, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
@@ -86,13 +86,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.messages && data.messages.length > 0) {
                 const container = document.getElementById('messageContainer');
                 if (!container) return;
-                
                 const currentUserId = getCurrentUserId();
-                
                 data.messages.forEach(msg => {
                     const isOut = (msg.sender_id == currentUserId);
                     const msgClass = isOut ? 'message-out' : 'message-in';
-                    
                     const html = `
                         <div class="message ${msgClass}">
                             <div class="message-content">${msg.content}</div>
@@ -102,12 +99,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     `;
                     container.insertAdjacentHTML('beforeend', html);
-                    
                     if (msg.id > lastMessageId) lastMessageId = msg.id;
                 });
-                
                 container.scrollTop = container.scrollHeight;
-
                 const lastIdField = document.getElementById('lastMessageId');
                 if (lastIdField) lastIdField.value = lastMessageId;
             }
@@ -119,12 +113,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.pollInterval) clearInterval(window.pollInterval);
         const chatId = getActiveChatId();
         if (chatId) {
-        
             lastMessageId = getLastMessageId();
-            window.pollInterval = setInterval(fetchNewMessages, 2000);
-            console.log('Polling started for chat', chatId, 'lastId:', lastMessageId);
+            window.pollInterval = setInterval(fetchNewMessages, 3000);
         }
     }
+
     startPolling();
     window.addEventListener('beforeunload', function() {
         if (window.pollInterval) clearInterval(window.pollInterval);
