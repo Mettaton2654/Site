@@ -5,7 +5,7 @@ Flask-WTF
 Werkzeug
 email-validator
 gunicorn
-psycopg2-binary==2.9.10
+psycopg[binary]
 Pillow
 cloudinary
 flask-mail
