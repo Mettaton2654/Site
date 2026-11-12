@@ -88,7 +88,7 @@ def generate_ai_post():
                 "Напиши короткий, интересный пост (150-250 символов) для социальной сети. Мысль должна быть закончена за это количество времени"
             )
             response = openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "Ты креативный философ."},
                     {"role": "user", "content": prompt}
